@@ -20,6 +20,10 @@ local default_opts = {
 		pipenv = { 'pipenv', '--venv' },
 		poetry = { 'poetry', 'env', 'info', '-p' },
 	},
+	venv_locations = {
+		(vim.env['PYENV_ROOT'] or vim.loop.os_homedir()..'/.pyenv') .. '/versions',
+		vim.env['WORKON_HOME'],
+	},
 	---@type table<string, fun(venv_path:string):table>
 	plugins = {
 		--- pyright
@@ -133,10 +137,7 @@ end
 ---@return string
 local function find_virtualenv(path)
 	local venv_locations = {}
-	for _, dir in ipairs({
-		path_join(vim.env['PYENV_ROOT'], 'versions'),
-		vim.env['WORKON_HOME']
-	}) do
+	for _, dir in ipairs(opts.venv_locations) do
 		if Util.exists(dir) then
 			table.insert(venv_locations, dir)
 		end
