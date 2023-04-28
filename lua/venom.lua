@@ -10,6 +10,23 @@ if not has_plenary then
 end
 local Path = require('plenary.path')
 
+local M = {}
+
+---@type VenomConfig
+local opts = {}
+
+---@type table<string, string>
+local cached_venvs = {}
+
+---@type table<string, boolean>
+local cached_unresolved_paths = {}
+
+---@param filename string
+---@return boolean
+local function is_dir(filename)
+	return Util.exists(filename) == 'directory'
+end
+
 ---@class VenomConfig
 local default_opts = {
 	echo = true,
@@ -30,10 +47,11 @@ local default_opts = {
 		---@param venv_path string
 		---@return table
 		pyright = function(venv_path)
+			if is_dir(venv_path) then
+				venv_path = table.concat({ venv_path, 'bin', 'python' }, '/')
+			end
 			return {
-				python = {
-					pythonPath = table.concat({ venv_path, 'bin', 'python' }, '/')
-				},
+				python = { pythonPath = venv_path },
 			}
 		end,
 
@@ -42,30 +60,14 @@ local default_opts = {
 		---@return table
 		pylsp = function(venv_path)
 			return {
-				pylsp = {
-					plugins = { jedi = { environment = venv_path } }
-				},
+				pylsp = { plugins = { jedi = { environment = venv_path } } },
 			}
 		end,
 	},
 }
 
----@type VenomConfig
-local opts = {}
-
----@type table<string, string>
-local cached_venvs = {}
-
----@type table<string, boolean>
-local cached_unresolved_paths = {}
-
 ---@param filename string
 ---@return boolean
-local function is_dir(filename)
-	return Util.exists(filename) == 'directory'
-end
-
----@param filename string
 local function is_absolute(filename)
 	if is_windows then
 		return filename:match('^%a:') or filename:match('^\\\\')
@@ -218,6 +220,7 @@ end
 
 -- On init hook for LSP clients. Automatically sets found virtualenv path.
 ---@param root_dir string
+---@return fun(lsp.Client):boolean
 local function lsp_client_on_init(root_dir)
 	return function(client)
 		-- First look in cached paths.
@@ -226,7 +229,7 @@ local function lsp_client_on_init(root_dir)
 			return true
 		end
 		if cached_unresolved_paths[root_dir] == true then
-			return
+			return false
 		end
 
 		-- Find virtualenv's python binary with multiple methods.
@@ -238,7 +241,7 @@ local function lsp_client_on_init(root_dir)
 			end
 			if venv_path == '' or not is_dir(venv_path) then
 				cached_unresolved_paths[root_dir] = true
-				return
+				return false
 			end
 		end
 
@@ -250,8 +253,74 @@ local function lsp_client_on_init(root_dir)
 	end
 end
 
+--- Set virtualenv in active LSP clients.
+---@param virtualenv string virtual-environment path
+---@param cwd string? root directory of project
+function M.set_virtualenv(virtualenv, cwd)
+	cwd = cwd or vim.loop.cwd() or vim.fn.getcwd()
+	cached_venvs[cwd] = virtualenv
+
+	local clients = vim.lsp.get_active_clients()
+	for _, client in ipairs(clients) do
+		apply_venom_plugins(client, virtualenv)
+	end
+end
+
+-- Finds virtualenvs in the system, also using pyenv, and returns a list.
+---@return table|nil
+function M.find_python_runtimes()
+	if is_windows then
+		vim.notify('Error: Doesn\'t work on Windows yet.', vim.log.levels.ERROR)
+		return
+	end
+
+	local venvs = {}
+	local stderr = {}
+
+	local stdout, ret = Job:new({
+		command = 'which',
+		args = { '-a', 'python', 'python3' },
+		on_stderr = function(_, data)
+			table.insert(stderr, data)
+		end,
+	}):sync()
+
+	if ret == 0 then
+		for _, venv in ipairs(stdout) do
+			table.insert(venvs, venv)
+		end
+	else
+		Util.error(string.format('Erroneous shell output: %s', vim.inspect(stderr)))
+		return
+	end
+
+	if vim.fn.executable('pyenv') == 1 then
+		stdout, ret = Job:new({
+			command = 'pyenv',
+			args = { 'root' },
+			on_stderr = function(_, data)
+				table.insert(stderr, data)
+			end,
+		}):sync()
+
+		if ret == 0 then
+			local pyenv_root = stdout[1]
+			local versions = vim.fn.globpath(pyenv_root, 'versions/*/bin/python', 0, 1)
+			for _, venv in ipairs(versions) do
+				table.insert(venvs, venv)
+			end
+		end
+	end
+
+	if #stderr > 0 then
+		Util.error(string.format('Erroneous shell output: %s', vim.inspect(stderr)))
+	end
+	return venvs
+end
+
 -- Setup LSP on_init hooks as Neoconf plugin.
 ---@param plugin_name string
+---@return fun()
 local function setup_neoconf_plugin(plugin_name)
 	return function()
 		Util.on_config({
@@ -264,8 +333,6 @@ local function setup_neoconf_plugin(plugin_name)
 		})
 	end
 end
-
-local M = {}
 
 --- Statusline friendly Venom section.
 ---@return string

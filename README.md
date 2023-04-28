@@ -1,4 +1,4 @@
-# Venom: Neoconf
+# Venom: Neoconf Plugin
 
 > Discover project's virtual-environment and automatically set LSP servers.
 
@@ -87,7 +87,10 @@ For example, using [lazy.nvim]:
 },
 ```
 
-## Debug
+## Usage
+
+Plugin will automatically run once editing a file. You can also select a
+runtime path using `:Telescope venom virtualenvs`
 
 Use `:Neoconf lsp` to view settings. For example:
 
@@ -96,14 +99,10 @@ Use `:Neoconf lsp` to view settings. For example:
 
 ## pyright
 
-* ~/.config/nvim/neoconf.json 
-
 {
   python = {
     analysis = {
-      autoSearchPaths = true,
-      diagnosticMode = "workspace",
-      useLibraryCodeForTypes = true
+      …
     },
     pythonPath = "/Users/bob/.local/share/pyenv/versions/foo/bin/python"
   }
@@ -142,6 +141,13 @@ require('venom').setup({
   },
 })
 ```
+
+## Telescope Extension
+
+A Telescope extension is also included that you can select a python runtime
+you'd like to use.
+
+Open: `:Telescope venom virtualenvs`
 
 ## See More
 
