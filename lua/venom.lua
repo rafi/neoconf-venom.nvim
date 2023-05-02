@@ -102,6 +102,8 @@ local function find_with_tools()
 			return ''
 		end
 
+		-- copy cmd to avoid modifying the original table
+		cmd = vim.deepcopy(cmd)
 		local command = table.remove(cmd, 1)
 		local stderr = {}
 
