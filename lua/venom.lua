@@ -36,7 +36,7 @@ local default_opts = {
 	tools = {
 		pipenv = { 'pipenv', '--venv' },
 		poetry = { 'poetry', 'env', 'info', '-p' },
-		hatch = { "hatch", "env", "find" },
+		hatch = { 'hatch', 'env', 'find' },
 	},
 	venv_locations = {
 		(vim.env['PYENV_ROOT'] or vim.loop.os_homedir()..'/.pyenv') .. '/versions',
@@ -97,7 +97,7 @@ end
 -- Use predefined executables to find virtualenv's location.
 ---@return string
 local function find_with_tools()
-	for _, cmd in pairs(opts.tools) do
+	for _, cmd in pairs(vim.deepcopy(opts.tools)) do
 		if type(cmd) ~= 'table' then
 			Util.error('[venom] tools value has to be a table')
 			return ''
