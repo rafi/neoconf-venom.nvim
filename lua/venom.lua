@@ -36,6 +36,7 @@ local default_opts = {
 	tools = {
 		pipenv = { 'pipenv', '--venv' },
 		poetry = { 'poetry', 'env', 'info', '-p' },
+    hatch = { "hatch", "env", "find" },
 	},
 	venv_locations = {
 		(vim.env['PYENV_ROOT'] or vim.loop.os_homedir()..'/.pyenv') .. '/versions',
