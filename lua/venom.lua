@@ -99,8 +99,8 @@ end
 -- @tparam parent
 -- @treturn boolean
 local function is_subdirectory(child, parent)
-	local child_parts = vim.split(child, "/", {})
-	local parent_parts = vim.split(parent, "/", {})
+	local child_parts = vim.split(child, '/', {})
+	local parent_parts = vim.split(parent, '/', {})
 
 	if #child_parts <= #parent_parts then
 		return false
@@ -273,7 +273,7 @@ local function lsp_client_on_init(root_dir)
 		for _, buffer in ipairs(vim.api.nvim_list_bufs()) do
 			local path = vim.api.nvim_buf_get_name(buffer)
 			if is_subdirectory(path, root_dir) then
-				vim.api.nvim_buf_set_var(buffer, "virtual_env", venv_path)
+				vim.api.nvim_buf_set_var(buffer, 'virtual_env', venv_path)
 			end
 		end
 		apply_venom_plugins(client, venv_path)
