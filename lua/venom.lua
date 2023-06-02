@@ -94,6 +94,27 @@ local function is_venv(venv_path)
 	return is_dir(venv_path) and Util.exists(bin)
 end
 
+--- Checks if a path is a subdirectory of another path.
+-- @tparam child
+-- @tparam parent
+-- @treturn boolean
+local function is_subdirectory(child, parent)
+	local child_parts = vim.split(child, '/', {})
+	local parent_parts = vim.split(parent, '/', {})
+
+	if #child_parts <= #parent_parts then
+		return false
+	end
+
+	for i, part in ipairs(parent_parts) do
+		if child_parts[i] ~= part then
+			return false
+		end
+	end
+
+	return true
+end
+
 -- Use predefined executables to find virtualenv's location.
 ---@return string
 local function find_with_tools()
@@ -248,7 +269,13 @@ local function lsp_client_on_init(root_dir)
 
 		-- Cache and update LSP clients with found venv python binary.
 		cached_venvs[root_dir] = venv_path
-		vim.api.nvim_buf_set_var(0, 'virtual_env', venv_path)
+		-- just path is child path of root_dir
+		for _, buffer in ipairs(vim.api.nvim_list_bufs()) do
+			local path = vim.api.nvim_buf_get_name(buffer)
+			if is_subdirectory(path, root_dir) then
+				vim.api.nvim_buf_set_var(buffer, 'virtual_env', venv_path)
+			end
+		end
 		apply_venom_plugins(client, venv_path)
 		return true
 	end
