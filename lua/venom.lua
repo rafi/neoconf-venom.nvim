@@ -49,7 +49,11 @@ local default_opts = {
 		---@return table
 		pyright = function(venv_path)
 			if is_dir(venv_path) then
-				venv_path = table.concat({ venv_path, 'bin', 'python' }, '/')
+        if is_windows then
+            venv_path = table.concat({ venv_path, 'Scripts', 'python.exe' }, '\\')
+        else
+            venv_path = table.concat({ venv_path, 'bin', 'python' }, '/')
+        end
 			end
 			return {
 				python = { pythonPath = venv_path },
@@ -90,7 +94,12 @@ local function is_venv(venv_path)
 	if venv_path == '' or venv_path == nil then
 		return false
 	end
-	local bin = path_join(venv_path, 'bin', 'python')
+  local bin
+  if is_windows then
+    bin = path_join(venv_path, 'Scripts', 'python.exe')
+  else
+    bin = path_join(venv_path, 'bin', 'python')
+  end
 	return is_dir(venv_path) and Util.exists(bin)
 end
 
