@@ -45,6 +45,23 @@ local default_opts = {
 	},
 	---@type table<string, fun(venv_path:string):table>
 	plugins = {
+		-- Currently ruff_lsp only supports init_options.settings settings on_init.
+		-- See https://github.com/astral-sh/ruff-lsp/issues/71
+		ruff_lsp = function(venv_path)
+			if is_dir(venv_path) then
+				venv_path = table.concat({ venv_path, 'bin', 'python' }, '/')
+			end
+			return {
+				before_init = function(initialize_parameters, _)
+					initialize_parameters.initializationOptions = {
+						settings = {
+							interpreter = { venv_path }
+						}
+					}
+				end
+			}
+		end,
+
 		--- pyright
 		---@param venv_path string
 		---@return table
