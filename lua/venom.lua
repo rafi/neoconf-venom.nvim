@@ -53,7 +53,9 @@ local default_opts = {
 				venv_path = table.concat({ venv_path, 'bin', 'python' }, '/')
 			end
 			return {
-				python = { pythonPath = venv_path },
+				settings = {
+					python = { pythonPath = venv_path }
+				},
 			}
 		end,
 
@@ -62,7 +64,9 @@ local default_opts = {
 		---@return table
 		pylsp = function(venv_path)
 			return {
-				pylsp = { plugins = { jedi = { environment = venv_path } } },
+				settings = {
+					pylsp = { plugins = { jedi = { environment = venv_path } } },
+				},
 			}
 		end,
 	},
@@ -185,34 +189,31 @@ end
 
 ---@param venv_path string
 ---@param setter fun(venv_path:string):table
----@param client lsp.Client
+---@param client vim.lsp.Client
 ---@return boolean
 local function apply_function(venv_path, setter, client)
 	local new_config = setter(venv_path)
 	if not vim.tbl_isempty(new_config) then
-		Util.merge(client.config.settings, new_config)
-		local ok = pcall(client.notify, 'workspace/didChangeConfiguration', {
-			settings = nil,
-			-- settings = new_config,
-		})
-		return ok
+		for key, _ in pairs(new_config) do
+			if type(client.config[key]) == 'table' then
+				client.config[key] = Util.merge({}, client.config[key], new_config[key])
+			else
+				client.config[key] = new_config[key]
+			end
+		end
+		return true
 	end
 	return false
 end
 
 -- Update LSP configurations for various Venom plugins.
----@param client lsp.Client
+---@param client vim.lsp.Client
 ---@param venv_path string
 local function apply_venom_plugins(client, venv_path)
 	for lsp_name, setter in pairs(opts.plugins) do
 		if client.name == lsp_name then
 			local msg = vim.fn.fnamemodify(venv_path, ':~')
-			if apply_function(venv_path, setter, client) then
-				if opts.echo then
-					local title = 'Virtual-environment set (' .. lsp_name .. ')'
-					vim.notify(msg, vim.log.levels.INFO, { title = title })
-				end
-			else
+			if not apply_function(venv_path, setter, client) then
 				local title = 'Failed setting virtual-environment (' .. lsp_name .. ')'
 				vim.notify(msg, vim.log.levels.ERROR, { title = title })
 			end
@@ -251,6 +252,15 @@ local function lsp_client_on_init(root_dir)
 		cached_venvs[root_dir] = venv_path
 		vim.api.nvim_buf_set_var(0, 'virtual_env', venv_path)
 		apply_venom_plugins(client, venv_path)
+
+		if opts.echo then
+			local title = 'Virtual-environment set'
+			vim.notify(
+				vim.fn.fnamemodify(venv_path, ':~'),
+				vim.log.levels.INFO,
+				{ title = title }
+			)
+		end
 		return true
 	end
 end
@@ -262,9 +272,12 @@ function M.set_virtualenv(virtualenv, cwd)
 	cwd = cwd or vim.loop.cwd() or vim.fn.getcwd()
 	cached_venvs[cwd] = virtualenv
 
-	local clients = vim.lsp.get_active_clients()
+	local clients = vim.lsp.get_clients() or vim.lsp.get_active_clients()
 	for _, client in ipairs(clients) do
 		apply_venom_plugins(client, virtualenv)
+		pcall(client.notify, 'workspace/didChangeConfiguration', {
+			settings = nil,
+		})
 	end
 end
 
@@ -327,9 +340,11 @@ local function setup_neoconf_plugin(plugin_name)
 	return function()
 		Util.on_config({
 			name = 'settings/plugins/' .. plugin_name,
-			on_config = function(client, root_dir)
-				if client.name == plugin_name then
-					client.on_init = lsp_client_on_init(root_dir)
+			---@param client_config vim.lsp.ClientConfig
+			---@param root_dir string
+			on_config = function(client_config, root_dir)
+				if client_config.name == plugin_name then
+					client_config.on_init = lsp_client_on_init(root_dir)
 				end
 			end,
 		})
