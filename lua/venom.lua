@@ -39,7 +39,8 @@ local default_opts = {
 		hatch = { 'hatch', 'env', 'find' },
 	},
 	venv_locations = {
-		(vim.env['PYENV_ROOT'] or vim.loop.os_homedir()..'/.pyenv') .. '/versions',
+		(vim.env['PYENV_ROOT'] or vim.loop.os_homedir() .. '/.pyenv')
+			.. '/versions',
 		vim.env['WORKON_HOME'],
 	},
 	---@type table<string, fun(venv_path:string):table>
@@ -80,7 +81,7 @@ end
 ---@param ... string
 ---@return string
 local function path_join(...)
-	return table.concat(vim.tbl_flatten { ... }, '/')
+	return table.concat(vim.tbl_flatten({ ... }), '/')
 end
 
 --- Verifies python executable exists in a venv.
@@ -271,7 +272,7 @@ end
 ---@return table|nil
 function M.find_python_runtimes()
 	if is_windows then
-		vim.notify('Error: Doesn\'t work on Windows yet.', vim.log.levels.ERROR)
+		vim.notify("Error: Doesn't work on Windows yet.", vim.log.levels.ERROR)
 		return
 	end
 

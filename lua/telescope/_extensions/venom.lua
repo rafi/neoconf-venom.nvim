@@ -12,13 +12,17 @@ local config = {
 
 -- Setup extension config
 local setup = function(opts)
-	config.mappings =
-		vim.tbl_deep_extend('force', config.mappings, require('telescope.config').values.mappings)
+	config.mappings = vim.tbl_deep_extend(
+		'force',
+		config.mappings,
+		require('telescope.config').values.mappings
+	)
 	config = vim.tbl_deep_extend('force', config, opts)
 end
 
 -- Sub-commands
-local virtualenvs = require('telescope._extensions.venom.virtualenvs').virtualenvs
+local virtualenvs =
+	require('telescope._extensions.venom.virtualenvs').virtualenvs
 
 -- Register plugin
 return telescope.register_extension({
@@ -27,4 +31,3 @@ return telescope.register_extension({
 		virtualenvs = virtualenvs,
 	},
 })
-
