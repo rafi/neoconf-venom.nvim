@@ -143,9 +143,12 @@ local function find_with_tools()
 				end
 			end
 			if #stderr > 0 then
-				Util.error(
-					string.format('Erroneous shell output from %s: %s',
-						command, vim.inspect(stderr))
+				Util.warn(
+					string.format(
+						'Erroneous shell output from %s: %s',
+						command,
+						vim.inspect(stderr)
+					)
 				)
 			end
 		end
