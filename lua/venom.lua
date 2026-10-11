@@ -27,6 +27,17 @@ local function is_dir(filename)
 	return Util.exists(filename) == 'directory'
 end
 
+-- Python executable of a virtual-environment: Scripts/python.exe on
+-- Windows, bin/python elsewhere.
+---@param venv_path string
+---@return string
+local function venv_python(venv_path)
+	if is_windows then
+		return table.concat({ venv_path, 'Scripts', 'python.exe' }, '/')
+	end
+	return table.concat({ venv_path, 'bin', 'python' }, '/')
+end
+
 ---@class VenomConfig
 local default_opts = {
 	echo = true,
@@ -49,7 +60,7 @@ local default_opts = {
 		-- See https://github.com/astral-sh/ruff-lsp/issues/71
 		ruff_lsp = function(venv_path)
 			if is_dir(venv_path) then
-				venv_path = table.concat({ venv_path, 'bin', 'python' }, '/')
+				venv_path = venv_python(venv_path)
 			end
 			return {
 				before_init = function(initialize_parameters, _)
@@ -67,7 +78,7 @@ local default_opts = {
 		---@return table
 		pyright = function(venv_path)
 			if is_dir(venv_path) then
-				venv_path = table.concat({ venv_path, 'bin', 'python' }, '/')
+				venv_path = venv_python(venv_path)
 			end
 			return {
 				settings = {
@@ -112,8 +123,7 @@ local function is_venv(venv_path)
 	if venv_path == '' or venv_path == nil then
 		return false
 	end
-	local bin = path_join(venv_path, 'bin', 'python')
-	return is_dir(venv_path) and Util.exists(bin)
+	return is_dir(venv_path) and Util.exists(venv_python(venv_path))
 end
 
 -- Use predefined executables to find virtualenv's location.
