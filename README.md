@@ -25,7 +25,7 @@ changes.
 
 Requirements:
 
-- [Neovim] ≥0.8
+- [Neovim] ≥0.10
 - [nvim-lspconfig]
 - [neoconf.nvim]
 - [plenary.nvim]
@@ -69,7 +69,7 @@ For example, using [lazy.nvim]:
   'neovim/nvim-lspconfig',
   event = { 'BufReadPre', 'BufNewFile' },
   dependencies = {
-    { 'folke/neoconf.nvim', cmd = 'Neoconf', config = true },
+    { 'folke/neoconf.nvim', cmd = 'Neoconf', opts = {} },
     'rafi/neoconf-venom.nvim',
   },
   config = function(_, opts)
