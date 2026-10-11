@@ -337,8 +337,8 @@ function M.find_python_runtimes()
 
 		if ret == 0 then
 			local pyenv_root = stdout[1]
-			local versions = vim.fn.globpath(pyenv_root, 'versions/*/bin/python', 0, 1)
-			for _, venv in ipairs(versions) do
+			local results = vim.fn.globpath(pyenv_root, 'versions/*/bin/python', 1)
+			for venv in results:gmatch('[^\r\n]+') do
 				table.insert(venvs, venv)
 			end
 		end
