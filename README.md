@@ -142,6 +142,13 @@ require('venom').setup({
 })
 ```
 
+## Statusline
+
+`require('venom').statusline()` returns the virtual-environment name and
+`symbol`, or an empty string. `require('venom').get_virtualenv(bufnr)`
+returns its path for a buffer: the one found for the buffer's project root,
+else `vim.b.virtual_env`, else `$VIRTUAL_ENV`.
+
 ## Telescope Extension
 
 A Telescope extension is also included that you can select a python runtime

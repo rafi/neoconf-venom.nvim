@@ -116,6 +116,23 @@ local function path_join(...)
 	return table.concat(vim.tbl_flatten({ ... }), '/')
 end
 
+-- Cached virtual-environment of the deepest project root that contains
+-- `path`.
+---@param path string
+---@return string?
+local function cached_venv_for(path)
+	path = vim.fs.normalize(path)
+	local best_root, best_venv
+	for cached_root, venv_path in pairs(cached_venvs) do
+		local root = vim.fs.normalize(cached_root)
+		local inside = path == root or vim.startswith(path, root .. '/')
+		if inside and (not best_root or #root > #best_root) then
+			best_root, best_venv = root, venv_path
+		end
+	end
+	return best_venv
+end
+
 --- Verifies python executable exists in a venv.
 ---@param venv_path string
 ---@return boolean
@@ -381,11 +398,25 @@ local function setup_neoconf_plugin(plugin_name)
 	end
 end
 
+--- Virtual-environment for a buffer: the cached one of its project root,
+--- else the buffer variable, else $VIRTUAL_ENV.
+---@param bufnr? integer defaults to the current buffer
+---@return string? venv_path
+function M.get_virtualenv(bufnr)
+	bufnr = bufnr or 0
+	local venv_path = cached_venv_for(vim.api.nvim_buf_get_name(bufnr))
+		or vim.b[bufnr].virtual_env
+		or vim.env.VIRTUAL_ENV
+	if venv_path ~= nil and venv_path ~= '' then
+		return venv_path
+	end
+end
+
 --- Statusline friendly Venom section.
 ---@return string
 function M.statusline()
-	local venv_path = vim.b['virtual_env'] or vim.env.VIRTUAL_ENV
-	if not (venv_path == nil or venv_path == '') then
+	local venv_path = M.get_virtualenv()
+	if venv_path then
 		return vim.fs.basename(venv_path) .. ' ' .. opts.symbol
 	end
 	return ''
